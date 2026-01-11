@@ -288,14 +288,14 @@ In `app.py`:
 ```python
 host='localhost'
 user='root'
-password='varun5526'
+password='xyz'
 database='instagram'
 ```
 
 ### **FCM Token**
 Unique per device/browser. Example:
 ```
-dpWy_suyEcydd9rx4TiS8M:APA91bG7ChiP3ysiACitKABp...
+dpWy_suyEcydd9rx4TiS8M:APAChiP3ysiACitKABp...
 ```
 
 ---
