@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Notifications</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📸</text></svg>">
+    <!-- Firebase App -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <!-- Firebase Messaging -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 30px;
+        }
+
+        h1 {
+            color: #262626;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #8e8e8e;
+            font-size: 14px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 15px;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(240, 148, 51, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(240, 148, 51, 0.6);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .status.disabled {
+            background: #fef3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status.enabled {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .token-section {
+            margin: 20px 0;
+            display: none;
+        }
+
+        .token-section.show {
+            display: block;
+        }
+
+        .token-label {
+            font-size: 12px;
+            color: #8e8e8e;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .token-display {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            word-break: break-all;
+            color: #495057;
+            border: 1px solid #dee2e6;
+            position: relative;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            width: auto;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+
+        .notifications-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 30px 0 15px;
+        }
+
+        .notifications-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #262626;
+        }
+
+        .clear-btn {
+            background: #dc3545;
+            padding: 8px 16px;
+            font-size: 12px;
+            width: auto;
+        }
+
+        .clear-btn:hover {
+            background: #c82333;
+        }
+
+        ul {
+            list-style: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        ul::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ul::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ul::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        ul::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        li {
+            background: #fff;
+            border: 1px solid #efefef;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: flex-start;
+            animation: fadeIn 0.3s ease-out;
+            transition: all 0.2s ease;
+        }
+
+        li:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transform: translateX(4px);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            flex-shrink: 0;
+            font-size: 18px;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            color: #262626;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .notification-body {
+            color: #8e8e8e;
+            font-size: 13px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #8e8e8e;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        .stats {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .notification-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, .3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">📸</div>
+            <h1>Instagram Notifications</h1>
+            <p class="subtitle">Real-time notification system with Firebase</p>
+        </div>
+
+        <button id="enableNotifications">🔔 Enable Notifications</button>
+        <div id="status" class="status disabled">NOTIFICATIONS: DISABLED</div>
+
+        <div id="tokenSection" class="token-section">
+            <div class="token-label">Your FCM Token:</div>
+            <div class="token-display">
+                <span id="tokenText">Generating...</span>
+                <button class="copy-btn" onclick="copyToken()">Copy</button>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">Total Notifications</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="sessionCount">0</div>
+                <div class="stat-label">This Session</div>
+            </div>
+        </div>
+
+        <div class="notifications-header">
+            <div class="notifications-title">Recent Notifications</div>
+            <button class="clear-btn" onclick="clearNotifications()">Clear All</button>
+        </div>
+
+        <ul id="notificationList">
+            <div class="empty-state">
+                <div class="empty-state-icon">🔕</div>
+                <div>No notifications yet</div>
+            </div>
+        </ul>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjgSj2nIuLtsuARzZeCWEjqNX73VdhWeE",
+            authDomain: "red-plate-483805-p4.firebaseapp.com",
+            projectId: "red-plate-483805-p4",
+            storageBucket: "red-plate-483805-p4.firebasestorage.app",
+            messagingSenderId: "465791834004",
+            appId: "1:465791834004:web:915c12b0f536b569972181",
+            measurementId: "G-Z96KNPDGE2"
+        };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const messaging = firebase.messaging();
+
+        let sessionCount = 0;
+        let totalCount = 0;
+
+        // Fetch total count from database on page load
+        function loadTotalCount() {
+            fetch('http://localhost:8000/notification-count')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.total !== undefined) {
+                        totalCount = data.total;
+                        updateStats();
+                    }
+                })
+                .catch(error => console.error('Error loading notification count:', error));
+        }
+
+        // Fetch and display recent notifications from database
+        function loadRecentNotifications() {
+            fetch('http://localhost:8000/recent-notifications')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.notifications && data.notifications.length > 0) {
+                        const list = document.getElementById('notificationList');
+
+                        // Remove empty state
+                        const emptyState = list.querySelector('.empty-state');
+                        if (emptyState) {
+                            emptyState.remove();
+                        }
+
+                        // Add each notification to the UI (in reverse order since they come newest first)
+                        data.notifications.reverse().forEach(notif => {
+                            const receivedDate = new Date(notif.received_at);
+                            const timeStr = receivedDate.toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                            const dateStr = receivedDate.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric'
+                            });
+
+                            const li = document.createElement('li');
+                            li.innerHTML = `
+                                <div class="notification-icon">❤️</div>
+                                <div class="notification-content">
+                                    <div class="notification-title">${escapeHtml(notif.title)}</div>
+                                    <div class="notification-body">${escapeHtml(notif.body)}</div>
+                                    <div class="notification-time">⏰ ${dateStr} at ${timeStr}</div>
+                                </div>
+                            `;
+                            list.insertBefore(li, list.firstChild);
+                        });
+
+                        console.log(`Loaded ${data.notifications.length} recent notifications from database`);
+                    }
+                })
+                .catch(error => console.error('Error loading recent notifications:', error));
+        }
+
+        // Load count and recent notifications when page loads
+        loadTotalCount();
+        loadRecentNotifications();
+
+        function updateStats() {
+            document.getElementById('sessionCount').textContent = sessionCount;
+            document.getElementById('totalCount').textContent = totalCount;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function copyToken() {
+            const tokenText = document.getElementById('tokenText').textContent;
+            navigator.clipboard.writeText(tokenText).then(() => {
+                const btn = event.target;
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => btn.textContent = 'Copy', 2000);
+                showToast('Token copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                showToast('Failed to copy token');
+            });
+        }
+
+        function clearNotifications() {
+            const list = document.getElementById('notificationList');
+            list.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔕</div>
+                    <div>No notifications yet</div>
+                </div>
+            `;
+            sessionCount = 0;
+            updateStats();
+        }
+
+        function addNotificationToUI(title, body) {
+            const list = document.getElementById('notificationList');
+
+            // Remove empty state if exists
+            const emptyState = list.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <div class="notification-icon">❤️</div>
+                <div class="notification-content">
+                    <div class="notification-title">${escapeHtml(title)}</div>
+                    <div class="notification-body">${escapeHtml(body)}</div>
+                    <div class="notification-time">⏰ ${timeStr}</div>
+                </div>
+            `;
+            list.insertBefore(li, list.firstChild);
+
+            sessionCount++;
+            totalCount++;
+            updateStats();
+        }
+
+        document.getElementById('enableNotifications').addEventListener('click', () => {
+            const button = event.target;
+            button.disabled = true;
+            button.innerHTML = '<span class="loading-spinner"></span> Requesting Permission...';
+
+            Notification.requestPermission().then((permission) => {
+                if (permission === 'granted') {
+                    console.log('Notification permission granted.');
+                    const statusEl = document.getElementById('status');
+                    statusEl.className = 'status enabled';
+                    statusEl.textContent = '✅ NOTIFICATIONS: ENABLED';
+                    button.textContent = '✓ Notifications Enabled';
+
+                    // Register Service Worker
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.register('./firebase.js')
+                            .then(function (registration) {
+                                console.log('Service Worker Registered!', registration);
+
+                                // Wait for service worker to be ready
+                                return navigator.serviceWorker.ready.then((reg) => {
+                                    return messaging.getToken({ serviceWorkerRegistration: reg });
+                                });
+                            })
+                            .then((currentToken) => {
+                                if (currentToken) {
+                                    console.log('FCM Token:', currentToken);
+                                    document.getElementById('tokenText').textContent = currentToken;
+                                    document.getElementById('tokenSection').classList.add('show');
+                                    showToast('Notifications enabled successfully!');
+                                } else {
+                                    console.log('No registration token available.');
+                                    document.getElementById('tokenText').textContent = 'Failed to generate token';
+                                    showToast('Warning: Token generation failed');
+                                }
+                            }).catch((err) => {
+                                console.error('An error occurred while retrieving token:', err);
+                                const statusEl = document.getElementById('status');
+                                statusEl.className = 'status error';
+                                const errorMsg = err.message || 'Unknown error';
+                                statusEl.textContent = '❌ ERROR: ' + errorMsg;
+                                button.disabled = false;
+                                button.textContent = '🔔 Retry Enable Notifications';
+                                showToast('Error: ' + errorMsg);
+                            });
+                    }
+                } else {
+                    console.log('Unable to get permission to notify.');
+                    const statusEl = document.getElementById('status');
+                    statusEl.className = 'status error';
+                    statusEl.textContent = '❌ NOTIFICATIONS: DENIED';
+                    button.disabled = false;
+                    button.textContent = '🔔 Enable Notifications';
+                    showToast('Notification permission denied. Please enable in browser settings.');
+                }
+            });
+        });
+
+        // Handle foreground messages
+        messaging.onMessage((payload) => {
+            console.log('Message received. ', payload);
+            const { title, body } = payload.notification;
+
+            // 1. Update UI List
+            addNotificationToUI(title, body);
+
+            // 2. Show System Notification (if allowed in foreground)
+            if (Notification.permission === 'granted') {
+                new Notification(title, {
+                    body,
+                    icon: '/icon.png',
+                    badge: '/icon.png'
+                });
+            }
+
+            // 3. Send to Backend
+            fetch('http://localhost:8000/store-notification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: title,
+                    body: body,
+                    type: 'foreground',
+                    source: 'Instagram',
+                }),
+            })
+                .then((response) => response.json())
+                .then((data) => console.log('Foreground notification stored:', data))
+                .catch((error) => console.error('Error storing notification:', error));
+        });
+    </script>
+</body>
+
+</html>
