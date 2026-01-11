@@ -449,7 +449,7 @@ print("Message ID:", response)
 ```json
 {
   "type": "service_account",
-  "project_id": "red-plate-483805-p4",
+  "project_id": "red-plate",
   "private_key_id": "...",
   "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
   "client_email": "firebase-adminsdk-...@red-plate-483805-p4.iam.gserviceaccount.com",
@@ -857,3 +857,4 @@ Project: red-plate-483805-p4
 **Firebase Project:** red-plate-483805-p4  
 **Documentation:** How Firebase Works  
 **Last Updated:** January 2026
+
